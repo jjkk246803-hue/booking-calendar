@@ -1,35 +1,223 @@
-function doGet(e) {
-  var sheetName = "總表"; 
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
-  var bookedDates = [];
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>即時預約時段查詢</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #f7f9fa;
+      color: #333;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 500px;
+      margin: 0 auto;
+      background: #ffffff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+    h2 {
+      text-align: center;
+      color: #2c3e50;
+      margin-bottom: 8px;
+    }
+    p.subtitle {
+      text-align: center;
+      color: #7f8c8d;
+      font-size: 14px;
+      margin-top: 0;
+      margin-bottom: 20px;
+    }
+    .legend {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin-bottom: 15px;
+      font-size: 13px;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+    .dot.available { background-color: #2ecc71; }
+    .dot.booked { background-color: #e74c3c; }
+    
+    .month-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      background: #f1f2f6;
+      padding: 8px 12px;
+      border-radius: 8px;
+    }
+    .month-nav button {
+      background: #fff;
+      border: 1px solid #dcdde1;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      color: #2c3e50;
+      font-size: 14px;
+    }
+    #monthYear {
+      font-size: 17px;
+      font-weight: bold;
+      color: #2c3e50;
+    }
+    .weekdays {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      text-align: center;
+      font-weight: bold;
+      color: #95a5a6;
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+    .days-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px;
+    }
+    .day-cell {
+      aspect-ratio: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      background-color: #f1f2f6;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .day-cell.booked {
+      background-color: #fadbd8;
+      color: #c0392b;
+      text-decoration: line-through;
+    }
+    .day-cell.available {
+      background-color: #e8f8f5;
+      color: #16a085;
+    }
+    .day-cell.empty {
+      background: transparent;
+    }
+    .notice {
+      margin-top: 25px;
+      background: #fdfefe;
+      border-left: 4px solid #3498db;
+      padding: 12px;
+      font-size: 13px;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h2>即時預約狀態看板</h2>
+  <p class="subtitle">紅色代表已被預約，綠色代表可預約</p>
   
-  if (sheet) {
-    var data = sheet.getDataRange().getValues();
-    // 我們印出第一列跟第二列來看看 F 欄到底是第幾欄、資料長怎樣
-    var debugInfo = {
-      row2: data[1], // 第二列的資料
-      dateInF: data[1][5] // F 欄的值 (索引 5)
-    };
+  <div class="legend">
+    <div class="legend-item"><div class="dot available"></div> 可預約</div>
+    <div class="legend-item"><div class="dot" style="background:#e74c3c;"></div> 已被預約</div>
+  </div>
+
+  <div class="month-nav">
+    <button onclick="changeMonth(-1)">◀ 上個月</button>
+    <div id="monthYear">載入資料中...</div>
+    <button onclick="changeMonth(1)">下個月 ▶</button>
+  </div>
+  
+  <div class="weekdays">
+    <div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div>
+  </div>
+  
+  <div class="days-grid" id="daysGrid"></div>
+
+  <div class="notice">
+    💡 <strong>貼心提醒：</strong>請先在此確認您想要的日期為「綠色（可預約）」後，再前往填寫預約！
+  </div>
+</div>
+
+<script>
+  let globalBookedDates = [];
+  let currentDate = new Date();
+
+  renderCalendar();
+
+  window.onload = function() {
+    const scriptUrl = "https://script.google.com/macros/s/AKfycbxXrqFsl70JgwA5_smgHODmUWotruKXLJmMte3l90M_rmqUE3qJ5bK-1vFVI8YcMDlM/exec";
+
+    fetch(scriptUrl)
+      .then(response => response.json())
+      .then(bookedDates => {
+        globalBookedDates = bookedDates.map(dStr => {
+          const d = new Date(dStr);
+          return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+        });
+        renderCalendar();
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        renderCalendar();
+      });
+  };
+
+  function changeMonth(direction) {
+    currentDate.setMonth(currentDate.getMonth() + direction);
+    renderCalendar();
+  }
+
+  function renderCalendar() {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
     
-    var dateColIndex = 5; // F 欄
+    document.getElementById('monthYear').innerText = `${year}年 ${month + 1}月`;
     
-    for (var i = 1; i < data.length; i++) { 
-      var val = data[i][dateColIndex];
-      if (val) {
-        var d = new Date(val);
-        if (!isNaN(d.getTime())) {
-          var year = d.getFullYear();
-          var month = ('0' + (d.getMonth() + 1)).slice(-2);
-          var day = ('0' + d.getDate()).slice(-2);
-          bookedDates.push(year + '-' + month + '-' + day);
-        }
+    const firstDayIndex = new Date(year, month, 1).getDay();
+    const totalDays = new Date(year, month + 1, 0).getDate();
+    
+    const grid = document.getElementById('daysGrid');
+    grid.innerHTML = '';
+    
+    for (let i = 0; i < firstDayIndex; i++) {
+      const emptyDiv = document.createElement('div');
+      emptyDiv.className = 'day-cell empty';
+      grid.appendChild(emptyDiv);
+    }
+    
+    for (let day = 1; day <= totalDays; day++) {
+      const cell = document.createElement('div');
+      cell.className = 'day-cell';
+      
+      const currentDateStr = `${year}-${month + 1}-${day}`;
+      
+      cell.innerText = day;
+      
+      if (globalBookedDates.includes(currentDateStr)) {
+        cell.classList.add('booked');
+        cell.title = "已被預約";
+      } else {
+        cell.classList.add('available');
+        cell.title = "可預約";
       }
+      
+      grid.appendChild(cell);
     }
   }
-  
-  // 如果抓不到任何日期，把 debug 資訊回傳出來讓我們看
-  var output = bookedDates.length > 0 ? bookedDates : ["DEBUG: 抓不到資料！", debugInfo];
+</script>
 
-  return ContentService.createTextOutput(JSON.stringify(output))
-      .setMimeType(ContentService.MimeType.JSON);
-}
+</body>
+</html>
