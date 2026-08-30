@@ -158,7 +158,8 @@
   renderCalendar();
 
   window.onload = function() {
-    const scriptUrl = "https://script.google.com/macros/s/AKfycbxXrqFsl70JgwA5_smgHODmUWotruKXLJmMte3l90M_rmqUE3qJ5bK-1vFVI8YcMDlM/exec";
+    // 加上時間戳記防快取，確保每次都能抓到最新資料
+    const scriptUrl = "https://script.google.com/macros/s/AKfycbxXrqFsl70JgwA5_smgHODmUWotruKXLJmMte3l90M_rmqUE3qJ5bK-1vFVI8YcMDlM/exec?t=" + new Date().getTime();
 
     fetch(scriptUrl)
       .then(response => response.json())
