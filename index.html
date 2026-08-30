@@ -155,6 +155,11 @@
   let globalBookedDates = [];
   let currentDate = new Date();
 
+  // 網頁一打開，先直接把當月月曆畫出來（避免空白或寫載入失敗）
+  renderCalendar();
+  document.getElementById('monthYear').innerText = "載入資料中...";
+
+  // 同步在背景跟 Google 拿資料
   window.onload = function() {
     const scriptUrl = "https://script.google.com/macros/s/AKfycbzwyIq24GKBRppb_N70ajN8ZR1zRCXawoV23o3UwUyxCRktuFXF7QnUcBR1tb65warO/exec";
 
@@ -162,11 +167,12 @@
       .then(response => response.json())
       .then(bookedDates => {
         globalBookedDates = bookedDates;
-        renderCalendar();
+        renderCalendar(); // 資料回來後立刻重新整理畫面，標註已被預約的日期
       })
       .catch(error => {
         console.error('Error:', error);
-        document.getElementById('monthYear').innerText = "載入失敗";
+        // 如果失敗也不打緊，至少月曆已經顯示出來了，讓使用者可以切換月份重試
+        renderCalendar();
       });
   };
 
