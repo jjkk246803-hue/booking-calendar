@@ -155,17 +155,17 @@
   let globalBookedDates = [];
   let currentDate = new Date();
 
-  // 一打開直接渲染月曆，絕不顯示載入失敗
+  // 打開直接渲染月曆
   renderCalendar();
 
   window.onload = function() {
-    const scriptUrl = "https://script.google.com/macros/s/AKfycbysi2ONOTEcI9h4uJikrp6xDq1c8szY96oD_LU4gca5mhRVHyAbjWRmOfCvlbSJLLPs/exec";
+    const scriptUrl = "https://script.google.com/macros/s/AKfycbxQ68sN1rbY0pbx6Trz5LbT-KdP4CRcj6uXeMnCx3WakZWuanOni7OnstJQPE5Csvdp/exec";
 
     fetch(scriptUrl)
       .then(response => response.json())
       .then(bookedDates => {
         globalBookedDates = bookedDates;
-        renderCalendar(); // 資料回來後立刻動態上色
+        renderCalendar(); // 資料回來後動態標註已被預約時段
       })
       .catch(error => {
         console.error('Error:', error);
