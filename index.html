@@ -127,11 +127,11 @@
 
 <div class="container">
   <h2>即時預約狀態看板</h2>
-  <p class="subtitle">紅色代表已被預約，綠色代表可預約</p>
+  <p class="subtitle">紅色代表已被預約/公休，綠色代表可預約</p>
   
   <div class="legend">
     <div class="legend-item"><div class="dot available"></div> 可預約</div>
-    <div class="legend-item"><div class="dot" style="background:#e74c3c;"></div> 已被預約</div>
+    <div class="legend-item"><div class="dot" style="background:#e74c3c;"></div> 已被預約/公休</div>
   </div>
 
   <div class="month-nav">
@@ -147,7 +147,7 @@
   <div class="days-grid" id="daysGrid"></div>
 
   <div class="notice">
-    💡 <strong>貼心提醒：</strong>請先在此確認您想要的日期為「綠色（可預約）」後，再前往填寫預約！
+    💡 <strong>貼心提醒：</strong>每週一固定為公休，請選擇其他「綠色（可預約）」日期！
   </div>
 </div>
 
@@ -158,7 +158,6 @@
   renderCalendar();
 
   window.onload = function() {
-    // 加上時間戳記防快取，確保每次都能抓到最新資料
     const scriptUrl = "https://script.google.com/macros/s/AKfycbxXrqFsl70JgwA5_smgHODmUWotruKXLJmMte3l90M_rmqUE3qJ5bK-1vFVI8YcMDlM/exec?t=" + new Date().getTime();
 
     fetch(scriptUrl)
@@ -203,13 +202,16 @@
       const cell = document.createElement('div');
       cell.className = 'day-cell';
       
+      const thisDate = new Date(year, month, day);
+      const dayOfWeek = thisDate.getDay(); // 0是周日, 1是周一, ... 6是周六
       const currentDateStr = `${year}-${month + 1}-${day}`;
       
       cell.innerText = day;
       
-      if (globalBookedDates.includes(currentDateStr)) {
+      // 判斷是否為「周一 (1)」或者是「試算表裡已被預約的日期」
+      if (dayOfWeek === 1 || globalBookedDates.includes(currentDateStr)) {
         cell.classList.add('booked');
-        cell.title = "已被預約";
+        cell.title = dayOfWeek === 1 ? "週一固定公休" : "已被預約";
       } else {
         cell.classList.add('available');
         cell.title = "可預約";
