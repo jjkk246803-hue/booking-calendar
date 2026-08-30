@@ -35,14 +35,14 @@
     .legend {
       display: flex;
       justify-content: center;
-      gap: 20px;
+      gap: 15px;
       margin-bottom: 15px;
       font-size: 13px;
     }
     .legend-item {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 5px;
     }
     .dot {
       width: 12px;
@@ -51,6 +51,7 @@
     }
     .dot.available { background-color: #2ecc71; }
     .dot.booked { background-color: #e74c3c; }
+    .dot.closed { background-color: #f1c40f; }
     
     .month-nav {
       display: flex;
@@ -106,6 +107,10 @@
       color: #c0392b;
       text-decoration: line-through;
     }
+    .day-cell.closed {
+      background-color: #fef9e7;
+      color: #b7950b;
+    }
     .day-cell.available {
       background-color: #e8f8f5;
       color: #16a085;
@@ -127,11 +132,12 @@
 
 <div class="container">
   <h2>即時預約狀態看板</h2>
-  <p class="subtitle">紅色代表已被預約/公休，綠色代表可預約</p>
+  <p class="subtitle">綠色可預約｜紅色已預約｜黃色週一公休</p>
   
   <div class="legend">
     <div class="legend-item"><div class="dot available"></div> 可預約</div>
-    <div class="legend-item"><div class="dot" style="background:#e74c3c;"></div> 已被預約/公休</div>
+    <div class="legend-item"><div class="dot" style="background:#e74c3c;"></div> 已被預約</div>
+    <div class="legend-item"><div class="dot closed"></div> 週一公休</div>
   </div>
 
   <div class="month-nav">
@@ -147,7 +153,7 @@
   <div class="days-grid" id="daysGrid"></div>
 
   <div class="notice">
-    💡 <strong>貼心提醒：</strong>每週一固定為公休，請選擇其他「綠色（可預約）」日期！
+    💡 <strong>貼心提醒：</strong>每週一固定為<strong>公休不開放預約</strong>，請選擇其他「綠色（可預約）」日期！
   </div>
 </div>
 
@@ -203,15 +209,18 @@
       cell.className = 'day-cell';
       
       const thisDate = new Date(year, month, day);
-      const dayOfWeek = thisDate.getDay(); // 0是周日, 1是周一, ... 6是周六
+      const dayOfWeek = thisDate.getDay(); // 0是周日, 1是周一
       const currentDateStr = `${year}-${month + 1}-${day}`;
       
       cell.innerText = day;
       
-      // 判斷是否為「周一 (1)」或者是「試算表裡已被預約的日期」
-      if (dayOfWeek === 1 || globalBookedDates.includes(currentDateStr)) {
+      // 優先權判斷：如果是週一就顯示黃色公休，如果是試算表裡有的日期就顯示紅色已被預約
+      if (dayOfWeek === 1) {
+        cell.classList.add('closed');
+        cell.title = "週一公休不開放預約";
+      } else if (globalBookedDates.includes(currentDateStr)) {
         cell.classList.add('booked');
-        cell.title = dayOfWeek === 1 ? "週一固定公休" : "已被預約";
+        cell.title = "已被預約";
       } else {
         cell.classList.add('available');
         cell.title = "可預約";
